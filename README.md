@@ -5,7 +5,7 @@
 
 ## Abstract
 
-* abstract의 내용을 넣어주세요.
+Audio Representation은 Music Tagging, Keyword Spotting, Sound Event Tagging 등 다양한 테스크에서 중요합니다. 고차원의 Deep Embedding Space에 음악이나, Audio Signal의 도메인 요소를 적용시키는 방법론을 제안합니다. Inherent Harmonic Structure은 인간의 인지과정의 핵심적인 요소입니다. 본 논문에서는 이러한 인지모델링을 Harmonic filter를 통해 구현합니다. Harmonic filter는 spectro-temporal locality를 유지하면서 Harmonic Relationship을 유지합니다.
 
 ## Table
 
