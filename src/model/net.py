@@ -3,17 +3,17 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-from torch.autograd import Variable
 import torchaudio
+from ops import Conv_2d, HarmonicSTFT, Res2Dmp
+from torch.autograd import Variable
 
-from .ops import HarmonicSTFT, Conv_2d, Res2Dmp
 
 class HarmonicCNN(nn.Module):
-    '''
+    """
     Won et al. 2020
     Data-driven harmonic filters for audio representation learning.
     Trainable harmonic band-pass filters.
-    '''
+    """
     def __init__(self,
                 n_channels:int,
                 sample_rate:float,
@@ -40,11 +40,13 @@ class HarmonicCNN(nn.Module):
         super(HarmonicCNN, self).__init__()
 
         # Harmonic STFT
-        self.hstft = HarmonicSTFT(sample_rate=sample_rate,
-                                  n_fft=n_fft,
-                                  n_harmonic=n_harmonic,
-                                  semitone_scale=semitone_scale,
-                                  learn_bw=learn_bw)
+        self.hstft = HarmonicSTFT(
+            sample_rate=sample_rate,
+            n_fft=n_fft,
+            n_harmonic=n_harmonic,
+            semitone_scale=semitone_scale,
+            learn_bw=learn_bw,
+        )
         self.hstft_bn = nn.BatchNorm2d(n_harmonic)
 
         # CNN
@@ -57,9 +59,9 @@ class HarmonicCNN(nn.Module):
         self.layer7 = Res2Dmp(n_channels*2, n_channels*2, pooling=(2,3))
 
         # Dense
-        self.dense1 = nn.Linear(n_channels*2, n_channels*2)
-        self.bn = nn.BatchNorm1d(n_channels*2)
-        self.dense2 = nn.Linear(n_channels*2, n_class)
+        self.dense1 = nn.Linear(n_channels * 2, n_channels * 2)
+        self.bn = nn.BatchNorm1d(n_channels * 2)
+        self.dense2 = nn.Linear(n_channels * 2, n_class)
         self.dropout = nn.Dropout(0.5)
         self.relu = nn.ReLU()
         self.sigmoid = nn.Sigmoid()
@@ -92,4 +94,3 @@ class HarmonicCNN(nn.Module):
         x = self.sigmoid(x)
 
         return x
-
