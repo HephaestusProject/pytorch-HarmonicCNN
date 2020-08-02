@@ -6,7 +6,7 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 import torchaudio
 
-from ops import HarmonicSTFT, Conv_2d, Res_2d_mp
+from .ops import HarmonicSTFT, Conv_2d, Res2Dmp
 
 class HarmonicCNN(nn.Module):
     '''
@@ -15,16 +15,28 @@ class HarmonicCNN(nn.Module):
     Trainable harmonic band-pass filters.
     '''
     def __init__(self,
-                n_channels=128,
-                sample_rate=16000,
-                n_fft=512,
-                f_min=0.0,
-                f_max=8000.0,
-                n_mels=128,
-                n_class=50,
-                n_harmonic=6,
-                semitone_scale=2,
-                learn_bw='only_Q'):
+                n_channels:int,
+                sample_rate:float,
+                n_fft:float,
+                f_min:float,
+                f_max:float,
+                n_class:int,
+                n_harmonic:int,
+                semitone_scale:int,
+                learn_bw:str):
+
+        """Instantiating HarmonicCNN class
+        Args:
+            n_channels(int) : number of channels
+            sample_rate(float) : sampling rate
+            n_fft(float) : number of fft bin
+            f_min(float) : min frequency
+            f_max(float) : max frequency
+            n_class(int) : the number of classes
+            n_harmonic(int) : the number of n_harmonic
+            semitone_scale(int) : a half step or a half tone, is the smallest musical interval
+            learn_bw(str) : learnable bandwidths
+        """
         super(HarmonicCNN, self).__init__()
 
         # Harmonic STFT
@@ -37,12 +49,12 @@ class HarmonicCNN(nn.Module):
 
         # CNN
         self.layer1 = Conv_2d(n_harmonic, n_channels, pooling=2)
-        self.layer2 = Res_2d_mp(n_channels, n_channels, pooling=2)
-        self.layer3 = Res_2d_mp(n_channels, n_channels, pooling=2)
-        self.layer4 = Res_2d_mp(n_channels, n_channels, pooling=2)
+        self.layer2 = Res2Dmp(n_channels, n_channels, pooling=2)
+        self.layer3 = Res2Dmp(n_channels, n_channels, pooling=2)
+        self.layer4 = Res2Dmp(n_channels, n_channels, pooling=2)
         self.layer5 = Conv_2d(n_channels, n_channels*2, pooling=2)
-        self.layer6 = Res_2d_mp(n_channels*2, n_channels*2, pooling=(2,3))
-        self.layer7 = Res_2d_mp(n_channels*2, n_channels*2, pooling=(2,3))
+        self.layer6 = Res2Dmp(n_channels*2, n_channels*2, pooling=(2,3))
+        self.layer7 = Res2Dmp(n_channels*2, n_channels*2, pooling=(2,3))
 
         # Dense
         self.dense1 = nn.Linear(n_channels*2, n_channels*2)
@@ -50,8 +62,9 @@ class HarmonicCNN(nn.Module):
         self.dense2 = nn.Linear(n_channels*2, n_class)
         self.dropout = nn.Dropout(0.5)
         self.relu = nn.ReLU()
+        self.sigmoid = nn.Sigmoid()
 
-    def forward(self, x):
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
         # Spectrogram
         x = self.hstft_bn(self.hstft(x))
 
@@ -76,7 +89,7 @@ class HarmonicCNN(nn.Module):
         x = self.relu(x)
         x = self.dropout(x)
         x = self.dense2(x)
-        x = nn.Sigmoid()(x)
+        x = self.sigmoid(x)
 
         return x
 
