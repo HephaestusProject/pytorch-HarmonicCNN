@@ -1,0 +1,25 @@
+num_of_tags : 50
+# Feature Parameters
+sample_rate : 16000
+input_length : 80000
+fft_size : 513
+pad : 0
+power : 2
+normalized : False
+n_harmonic : 6
+semitone_scale : 2
+bw_Q : 1.0
+learn_bw : 'only_Q'
+win_length : None
+hop_length : None
+
+# Training Parameters
+device : [1,2]  # 0: CPU, 1: GPU0, 2: GPU1, ...
+batch_size : 32
+num_epochs : 200
+learning_rate : 1e-2
+stopping_rate : 1e-5
+weight_decay : 1e-6
+momentum : 0.9
+factor : 0.2
+patience : 5
