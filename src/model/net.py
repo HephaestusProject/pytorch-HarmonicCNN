@@ -4,7 +4,7 @@ import torch
 import torch.nn as nn
 import torch.nn.functional as F
 import torchaudio
-from ops import Conv_2d, HarmonicSTFT, Res2Dmp
+from .ops import Conv_2d, HarmonicSTFT, Res2Dmp
 from torch.autograd import Variable
 
 
@@ -15,16 +15,16 @@ class HarmonicCNN(nn.Module):
     Trainable harmonic band-pass filters.
     """
     def __init__(self,
-                n_channels:int,
-                sample_rate:float,
-                n_fft:float,
-                f_min:float,
-                f_max:float,
-                n_class:int,
-                n_harmonic:int,
-                semitone_scale:int,
-                learn_bw:str):
-
+                n_channels=128,
+                sample_rate=16000,
+                n_fft=512,
+                f_min=0.0,
+                f_max=8000.0,
+                n_mels=128,
+                n_class=50,
+                n_harmonic=6,
+                semitone_scale=2,
+                learn_bw='only_Q'):
         """Instantiating HarmonicCNN class
         Args:
             n_channels(int) : number of channels
