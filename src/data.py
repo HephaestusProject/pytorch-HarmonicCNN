@@ -21,21 +21,21 @@ class MTATDataset(data.Dataset):
         self.split = split
         self.input_length = input_length
         self.get_songlist()
-        self.binary = np.load(os.path.join(self.root, "dataset", "split", "binary.npy"))
+        self.binary = np.load(os.path.join(self.root, "split", "binary.npy"))
 
     def get_songlist(self):
         if self.split == "TRAIN":
-            self.fl = np.load(os.path.join(self.root, "dataset", "split", "train.npy"))
+            self.fl = np.load(os.path.join(self.root, "split", "train.npy"))
         elif self.split == "VALID":
-            self.fl = np.load(os.path.join(self.root, "dataset", "split", "valid.npy"))
+            self.fl = np.load(os.path.join(self.root, "split", "valid.npy"))
         elif self.split == "TEST":
-            self.fl = np.load(os.path.join(self.root, "dataset", "split", "test.npy"))
+            self.fl = np.load(os.path.join(self.root, "split", "test.npy"))
         else:
             print("Split should be one of [TRAIN, VALID, TEST]")
 
     def get_audio_tag(self, index):
         ix, fn = self.fl[index].split("\t")
-        mp3_path = os.path.join(self.root, "dataset", "mp3", fn)
+        mp3_path = os.path.join(self.root, "mp3", fn)
         waveform, sr = torchaudio.load(mp3_path)
         downsample_resample = torchaudio.transforms.Resample(
             sr, self.sampling_rate, resampling_method="sinc_interpolation"

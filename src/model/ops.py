@@ -27,7 +27,7 @@ class Conv_2d(nn.Module):
 
 class Res2Dmp(nn.Module):
     def __init__(self, input_channels, output_channels, pooling=2):
-        super(Res_2d_mp, self).__init__()
+        super(Res2Dmp, self).__init__()
         self.conv_1 = nn.Conv2d(input_channels, output_channels, 3, padding=1)
         self.bn_1 = nn.BatchNorm2d(output_channels)
         self.conv_2 = nn.Conv2d(output_channels, output_channels, 3, padding=1)
@@ -45,17 +45,17 @@ class Res2Dmp(nn.Module):
 class HarmonicSTFT(nn.Module):
     """HarmonicSTFT class"""
     def __init__(self,
-                 sample_rate:float,
-                 n_fft:float,
-                 win_length:int,
-                 hop_length:int,
-                 pad:int,
-                 power:int,
-                 normalized:bool,
-                 n_harmonic:int,
-                 semitone_scale:int,
-                 bw_Q:int,
-                 learn_bw:str)
+                 sample_rate=16000,
+                 n_fft=513,
+                 win_length=None,
+                 hop_length=None,
+                 pad=0,
+                 power=2,
+                 normalized=False,
+                 n_harmonic=6,
+                 semitone_scale=2,
+                 bw_Q=1.0,
+                 learn_bw=None):
         """Instantiating HarmonicCNN class
             Args:
                 sample_rate(float) : sampling rate
