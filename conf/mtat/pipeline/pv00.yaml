@@ -1,0 +1,11 @@
+version: pv00
+type: DataPipeline
+dataset:
+  type: MTATDataset
+  path: ../dataset/mtat
+  input_length: 80000
+dataloader:
+  type: DataLoader
+  params:
+    batch_size: 16
+    num_workers: 8

@@ -1,0 +1,12 @@
+version: harmoniccnn
+type: HarmoincCNN
+params:
+  # CNN Parameters
+  n_channels: 128
+  sample_rate: 16000
+  n_fft : 513
+  n_mels : 128
+  n_class : 50
+  n_harmonic : 6
+  semitone_scale : 2
+  learn_bw : only_Q

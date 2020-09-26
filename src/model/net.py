@@ -13,18 +13,17 @@ class HarmonicCNN(nn.Module):
     Won et al. 2020
     Data-driven harmonic filters for audio representation learning.
     Trainable harmonic band-pass filters.
+    https://github.com/minzwon/sota-music-tagging-models
     """
     def __init__(self,
-                n_channels=128,
-                sample_rate=16000,
-                n_fft=512,
-                f_min=0.0,
-                f_max=8000.0,
-                n_mels=128,
-                n_class=50,
-                n_harmonic=6,
-                semitone_scale=2,
-                learn_bw='only_Q'):
+                n_channels: int,
+                sample_rate: int,
+                n_fft: int,
+                n_mels: int,
+                n_class: int,
+                n_harmonic: int,
+                semitone_scale: int,
+                learn_bw: str):
         """Instantiating HarmonicCNN class
         Args:
             n_channels(int) : number of channels

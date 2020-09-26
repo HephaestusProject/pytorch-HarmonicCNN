@@ -56,14 +56,3 @@ class MTATDataset(data.Dataset):
 
     def __len__(self):
         return len(self.fl)
-
-
-def get_audio_loader(root, batch_size, input_length, split="TRAIN", num_workers=0):
-    data_loader = data.DataLoader(
-        dataset=MTATDataset(root, split=split, input_length=input_length),
-        batch_size=batch_size,
-        shuffle=True,
-        drop_last=False,
-        num_workers=num_workers,
-    )
-    return data_loader
