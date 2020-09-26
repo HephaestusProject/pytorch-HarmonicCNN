@@ -1,0 +1,8 @@
+benchmark: false
+deterministic: true
+distributed_backend: dp
+gamma: 0.95
+gpus: 1
+learning_rate: 1.0e-05
+max_epochs: 100
+scale_factor: 5

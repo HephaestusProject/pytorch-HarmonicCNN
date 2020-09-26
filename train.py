@@ -1,104 +1,83 @@
-'''
-train_test.py
+from pathlib import Path
+from argparse import ArgumentParser, Namespace
+from omegaconf import OmegaConf, DictConfig
+from pytorch_lightning import Trainer, seed_everything
+from pytorch_lightning.loggers import TensorBoardLogger
+from pytorch_lightning.callbacks import ModelCheckpoint, EarlyStopping
 
-A file for training model for genre classification.
-Please check the device in hparams.py before you run this code.
-'''
-import torch
-torch.manual_seed(1234)
-torch.backends.cudnn.deterministic = True
-torch.backends.cudnn.benchmark = False
-import numpy as np
-np.random.seed(0)
-
-from torch.optim.lr_scheduler import ReduceLROnPlateau
-from src.data import get_audio_loader
 from src.model.net import HarmonicCNN
-from hparams import hparams
-# Wrapper class to run PyTorch model
-class Runner(object):
-    def __init__(self, hparams):
-        self.model =HarmonicCNN()
-        self.criterion = torch.nn.BCELoss()
-        self.optimizer = torch.optim.SGD(self.model.parameters(), lr=hparams.learning_rate, momentum=hparams.momentum, weight_decay=1e-6, nesterov=True)
-        self.scheduler = ReduceLROnPlateau(self.optimizer, mode='min', factor=hparams.factor, patience=hparams.patience, verbose=True)
-        self.learning_rate = hparams.learning_rate
-        self.stopping_rate = hparams.stopping_rate
-        self.device = torch.device("cpu")
+from src.task.pipeline import DataPipeline
+from src.task.runner import AutotaggingRunner
 
-        if hparams.device > 0:
-            torch.cuda.set_device(hparams.device - 1)
-            self.model.cuda(hparams.device - 1)
-            self.criterion.cuda(hparams.device - 1)
-            self.device = torch.device("cuda:" + str(hparams.device - 1))
 
-    # Running model for train, test and validation. mode: 'train' for training, 'eval' for validation and test
-    def run(self, dataloader, mode='train'):
-        self.model.train() if mode is 'train' else self.model.eval()
+def get_config(args: Namespace) -> DictConfig:
+    parent_config_dir = Path("conf")
+    child_config_dir = parent_config_dir / args.dataset
+    model_config_dir = child_config_dir / "model"
+    pipeline_config_dir = child_config_dir / "pipeline"
+    runner_config_dir = child_config_dir / "runner"
+    
+    config = OmegaConf.create()
+    model_config = OmegaConf.load(model_config_dir / f"{args.model}.yaml")
+    pipeline_config = OmegaConf.load(pipeline_config_dir / f"{args.pipeline}.yaml")
+    runner_config = OmegaConf.load(runner_config_dir / f"{args.runner}.yaml")
+    config.update(model=model_config, pipeline=pipeline_config, runner=runner_config)
+    return config
 
-        epoch_loss = 0
-        for batch, (x, y) in enumerate(dataloader):
-            x = x.to(self.device)
-            y = y.to(self.device)
+def get_tensorboard_logger(args: Namespace) -> TensorBoardLogger:
+    logger = TensorBoardLogger(save_dir=f"exp/{args.dataset}",
+                               name=args.model,
+                               version=args.runner)
+    return logger
 
-            prediction = self.model(x)
-            loss = self.criterion(prediction, y)
-            
-            if mode is 'train':
-                loss.backward()
-                self.optimizer.step()
-                self.optimizer.zero_grad()
 
-            epoch_loss += prediction.size(0)*loss.item()
-        epoch_loss = epoch_loss/len(dataloader.dataset)
+def get_checkpoint_callback(args: Namespace) -> ModelCheckpoint:
+    prefix = f"exp/{args.dataset}/{args.model}/{args.runner}/"
+    suffix = "{epoch:02d}-{roc_auc:.4f}-{pr_auc:.4f}"
+    filepath = prefix + suffix
+    checkpoint_callback = ModelCheckpoint(filepath=filepath,
+                                          save_top_k=1,
+                                          monitor="val_loss",
+                                          save_weights_only=True,
+                                          verbose=True)
+    return checkpoint_callback
 
-        return epoch_loss
+def get_early_stop_callback(args: Namespace) -> EarlyStopping:
+    early_stop_callback = EarlyStopping(
+        monitor='val_loss',
+        min_delta=0.00,
+        patience=5,
+        verbose=False,
+        mode='auto'
+    )
+    return early_stop_callback
 
-    # Early stopping function for given validation loss
-    def early_stop(self, loss, epoch):
-        self.scheduler.step(loss)
-        self.learning_rate = self.optimizer.param_groups[0]['lr']
-        stop = self.learning_rate < self.stopping_rate
 
-        return stop
+def main(args) -> None:
+    if args.reproduce:
+        seed_everything(42)
 
-def device_name(device):
-    if device == 0:
-        device_name = 'CPU'
-    else:
-        device_name = 'GPU:' + str(device - 1)
+    config = get_config(args)
+    logger = get_tensorboard_logger(args)
+    checkpoint_callback = get_checkpoint_callback(args)
+    early_stop_callback = get_early_stop_callback(args)
 
-    return device_name
+    pipeline = DataPipeline(pipline_config=config.pipeline)
+    model = HarmonicCNN(**config.model.params)
+    runner = AutotaggingRunner(model, config.runner)
 
-def main():
-    train_loader = get_audio_loader("../dataset/mtat",
-                                    batch_size = hparams.batch_size,
-                                    split='TRAIN',
-                                    input_length=80000,
-                                    num_workers = hparams.num_workers)
-    valid_loader = get_audio_loader("../dataset/mtat",
-                                    batch_size = hparams.batch_size,
-                                    split='VALID',
-                                    input_length=80000,
-                                    num_workers = hparams.num_workers)
-    test_loader = get_audio_loader("../dataset/mtat",
-                                    batch_size = hparams.batch_size,
-                                    split='TEST',
-                                    input_length=80000,
-                                    num_workers = hparams.num_workers)
-    runner = Runner(hparams)
+    trainer = Trainer(**config.runner.trainer.params,
+                      logger=logger,
+                      checkpoint_callback=checkpoint_callback,
+                      early_stop_callback=early_stop_callback)
+    trainer.fit(runner, datamodule=pipeline)
 
-    print('Training on ' + device_name(hparams.device))
-    for epoch in range(hparams.num_epochs):
-        train_loss = runner.run(train_loader, 'train')
-        valid_loss = runner.run(valid_loader, 'eval')
-        print(train_loss, valid_loss)
-        
-        if runner.early_stop(valid_loss, epoch + 1):
-            break
-
-    test_loss = runner.run(test_loader, 'eval')
-    print("Training Finished")
-
-if __name__ == '__main__':
-    main()
+if __name__ == "__main__":
+    parser = ArgumentParser()
+    parser.add_argument("--model", default="HarmonicCNN", type=str)
+    parser.add_argument("--dataset", default="mtat", type=str, choices=["mtat"])
+    parser.add_argument("--pipeline", default="pv00", type=str)
+    parser.add_argument("--runner", default="rv00", type=str)
+    parser.add_argument("--reproduce", default=False, action="store_true")
+    args = parser.parse_args()
+    main(args)
